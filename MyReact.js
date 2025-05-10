@@ -13,22 +13,27 @@ export function render(component, props, parent) {
 
 export function useState(initialState) {
   const id = globalId;
-  const { cache, props, component } = componentState.get(globalParent);
-  if (cache[id] == null) {
-    cache[id] = {
-      value: typeof initialState === "function" ? initialState() : initialState,
-    };
-  }
-
+  const parent = globalParent;
   globalId++;
 
-  const setState = (value) => {
-    if (typeof value === "function") {
-      cache[id].value = value(cache[id].value);
-    } else {
-      cache[id].value = value;
+  return (() => {
+    const { cache } = componentState.get(parent);
+    if (cache[id] == null) {
+      cache[id] = {
+        value:
+          typeof initialState === "function" ? initialState() : initialState,
+      };
     }
-    render(component, props, globalParent);
-  };
-  return [cache[id].value, setState];
+
+    const setState = (value) => {
+      const { props, component } = componentState.get(parent);
+      if (typeof value === "function") {
+        cache[id].value = value(cache[id].value);
+      } else {
+        cache[id].value = value;
+      }
+      render(component, props, parent);
+    };
+    return [cache[id].value, setState];
+  })();
 }
